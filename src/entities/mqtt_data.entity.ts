@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
-export class Mqtt_Data {
+export class mqtt_Data {
   @PrimaryGeneratedColumn({
     type: 'bigint',
     name: 'mqtt_data_id',

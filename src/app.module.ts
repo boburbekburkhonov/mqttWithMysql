@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { config } from './config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Station } from './entities/station.entity';
-import { Mqtt_Data } from './entities/mqtt_data.entity copy';
+import { mqtt_Data } from './entities/mqtt_data.entity';
 import { MqttModule } from './modules/mqtt/mqtt.module';
 
 @Module({
@@ -16,7 +16,7 @@ import { MqttModule } from './modules/mqtt/mqtt.module';
       username: 'admin_wialon',
       password: 'admin_wialon',
       database: 'admin_wialon',
-      entities: [Station, Mqtt_Data],
+      entities: [Station, mqtt_Data],
       synchronize: true,
     }),
     MqttModule,

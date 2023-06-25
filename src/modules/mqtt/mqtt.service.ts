@@ -4,15 +4,15 @@ import { Repository } from 'typeorm';
 import * as mqtt from 'mqtt';
 import { Station } from 'src/entities/station.entity';
 import { IMqttConnectOptions } from 'src/types';
-import { Mqtt_Data } from 'src/entities/mqtt_data.entity copy';
+import { mqtt_Data } from 'src/entities/mqtt_data.entity';
 
 @Injectable()
 export class MqttService implements OnModuleInit {
   constructor(
     @InjectRepository(Station)
     private stationModel: Repository<Station>,
-    @InjectRepository(Mqtt_Data)
-    private mqttDataModel: Repository<Mqtt_Data>,
+    @InjectRepository(mqtt_Data)
+    private mqttDataModel: Repository<mqtt_Data>,
   ) {}
 
   private options: IMqttConnectOptions = {
@@ -47,12 +47,9 @@ export class MqttService implements OnModuleInit {
         try {
           const data = JSON.parse(payload);
           const station = await this.stationModel.findOneBy({ code: data.i });
-          console.log(station);
-          console.log(data);
 
           if (station.code) {
-            console.log(1);
-
+            console.log(station, data);
             const level = Number(data.d) / 1000;
             const volume = Number(data.v) / 1000;
             const correc = Number(data.c);
@@ -68,22 +65,36 @@ export class MqttService implements OnModuleInit {
               dataHour,
               dataMinute,
             );
+            const timeMonth =
+              String(Number(time.getMonth() + 1)).length == 1
+                ? '0' + String(Number(time.getMonth() + 1))
+                : String(Number(time.getMonth() + 1));
+            const timeHour =
+              String(time.getHours()).length == 1
+                ? '0' + String(time.getHours())
+                : String(time.getHours());
+            const timeMinute =
+              String(time.getMinutes()).length == 1
+                ? '0' + String(time.getMinutes())
+                : String(time.getMinutes());
 
-            time.setHours(time.getHours() + 5);
-
-            const date = await this.mqttDataModel.create({
-              st_id: station.id,
-              level: level,
-              volume: volume,
-              time: String(
-                time.getFullYear() +
-                  Number(time.getMonth() + 1) +
-                  time.getDate() +
-                  time.getHours() +
-                  time.getMinutes(),
-              ),
-              corec: correc,
-            });
+            await this.mqttDataModel
+              .createQueryBuilder()
+              .insert()
+              .into(mqtt_Data)
+              .values({
+                st_id: station.id,
+                level: level,
+                volume: volume,
+                time:
+                  String(time.getFullYear()) +
+                  timeMonth +
+                  String(time.getDate()) +
+                  timeHour +
+                  timeMinute,
+                corec: correc,
+              })
+              .execute();
           }
         } catch (error: unknown) {
           console.log(error);
