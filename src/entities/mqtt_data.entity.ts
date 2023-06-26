@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity()
+@Entity('mqtt-data')
 export class mqtt_Data {
   @PrimaryGeneratedColumn({
     type: 'bigint',
@@ -15,11 +15,13 @@ export class mqtt_Data {
 
   @Column({
     name: 'level',
+    type: 'float',
   })
   level: number;
 
   @Column({
     name: 'volume',
+    type: 'float',
   })
   volume: number;
 

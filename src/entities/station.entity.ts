@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity()
+@Entity('station')
 export class Station {
   @PrimaryGeneratedColumn({
     type: 'bigint',

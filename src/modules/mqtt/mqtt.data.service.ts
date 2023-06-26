@@ -1,18 +1,19 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as mqtt from 'mqtt';
 import { Station } from 'src/entities/station.entity';
 import { IMqttConnectOptions } from 'src/types';
 import { mqtt_Data } from 'src/entities/mqtt_data.entity';
 
 @Injectable()
-export class MqttService implements OnModuleInit {
+export class MqttDataService implements OnModuleInit {
   constructor(
     @InjectRepository(Station)
     private stationModel: Repository<Station>,
     @InjectRepository(mqtt_Data)
     private mqttDataModel: Repository<mqtt_Data>,
+    private dataSource: DataSource,
   ) {}
 
   private options: IMqttConnectOptions = {
@@ -44,12 +45,18 @@ export class MqttService implements OnModuleInit {
     this.mqttClient.on(
       'message',
       async (topic: string, payload: string): Promise<void> => {
+        const queryRunner = this.dataSource.createQueryRunner();
+
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
         try {
           const data = JSON.parse(payload);
-          const station = await this.stationModel.findOneBy({ code: data.i });
+          const station = await queryRunner.manager.query(
+            `select * from station where code = ${data.i}`,
+          );
 
-          if (station.code) {
-            console.log(station, data);
+          if (station[0].code) {
+            console.log(data, station);
             const level = Number(data.d) / 1000;
             const volume = Number(data.v) / 1000;
             const correc = Number(data.c);
@@ -78,26 +85,23 @@ export class MqttService implements OnModuleInit {
                 ? '0' + String(time.getMinutes())
                 : String(time.getMinutes());
 
-            await this.mqttDataModel
-              .createQueryBuilder()
-              .insert()
-              .into(mqtt_Data)
-              .values({
-                st_id: station.id,
-                level: level,
-                volume: volume,
-                time:
-                  String(time.getFullYear()) +
-                  timeMonth +
-                  String(time.getDate()) +
-                  timeHour +
-                  timeMinute,
-                corec: correc,
-              })
-              .execute();
+            await queryRunner.manager.save(mqtt_Data, {
+              st_id: station[0].station_id,
+              level: level,
+              volume: volume,
+              time:
+                String(time.getFullYear()) +
+                timeMonth +
+                String(time.getDate()) +
+                timeHour +
+                timeMinute,
+              corec: correc,
+            });
           }
         } catch (error: unknown) {
           console.log(error);
+        } finally {
+          await queryRunner.release();
         }
       },
     );
